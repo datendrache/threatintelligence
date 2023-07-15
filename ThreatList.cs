@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using FatumCore;
+using Proliferation.Fatum;
 using DatabaseAdapters;
 using System.Data;
 using System.Net;
@@ -161,8 +161,8 @@ namespace ThreatIntelligence
 
                             foreach (Tree current in parsedList.tree)
                             {
-                                current.addElement("ID", ID.ToString());
-                                current.addElement("LastObserved", DateTime.UtcNow.ToString("yyyy-mm-dd"));
+                                current.AddElement("ID", ID.ToString());
+                                current.AddElement("LastObserved", DateTime.UtcNow.ToString("yyyy-mm-dd"));
                                 await ProcessBlockedEntry(connectionstring, current, ID, 1);
                             }
 
@@ -177,7 +177,7 @@ namespace ThreatIntelligence
                             File.Move(destinationFile, Bad + ID.ToString() + "." + DateTime.UtcNow.ToString("yyyymmddhhmmss") + ".txt");
                         }
 
-                        parsedList.dispose();
+                        parsedList.Dispose();
                     }
                     else
                     {
@@ -232,12 +232,12 @@ namespace ThreatIntelligence
 
             string SQL = "update Blocked set LastObserved=@LastObserved, ObservedCount=@ObservedCount where Hostname=@Hostname and IPAddress=@IPAddress";
             Tree values = new Tree();
-            values.addElement("Hostname", entryvalue.getElement("Hostname"));
-            values.addElement("IPAddress", entryvalue.getElement("IPAddress"));
-            values.addElement("LastObserved", DateTime.UtcNow.ToString("yyyy-MM-dd"));
-            values.addElement("ObservedCount", entryvalue.getElement("ObservedCount"));
+            values.AddElement("Hostname", entryvalue.GetElement("Hostname"));
+            values.AddElement("IPAddress", entryvalue.GetElement("IPAddress"));
+            values.AddElement("LastObserved", DateTime.UtcNow.ToString("yyyy-MM-dd"));
+            values.AddElement("ObservedCount", entryvalue.GetElement("ObservedCount"));
             db.ExecuteDynamic(SQL, values);
-            values.dispose();
+            values.Dispose();
             db.Close();
         }
 
@@ -246,18 +246,18 @@ namespace ThreatIntelligence
             IntDatabase db = new ADOConnector(connectionstring, "Archlake");
             Boolean ifIPisNotParsable = false;
 
-            if (entryvalue.getElement("IPAddress") != null)
+            if (entryvalue.GetElement("IPAddress") != null)
             {
-                if (entryvalue.getElement("IPAddress") != "")
+                if (entryvalue.GetElement("IPAddress") != "")
                 {
                     Boolean isAddressRoutableCIDR = true;
-                    switch (entryvalue.getElement("IPAddress"))
+                    switch (entryvalue.GetElement("IPAddress"))
                     {
                         case "0.0.0.0":
                         case "172.16.0.0":
                         case "192.168.0.0":
                             isAddressRoutableCIDR = false;
-                            Console.Out.WriteLine("Warning: IP Address " + entryvalue.getElement("IPAddress") + " not routable CIDR, cannot geolocate hostname '" + entryvalue.getElement("Hostname") + "' .");
+                            Console.Out.WriteLine("Warning: IP Address " + entryvalue.GetElement("IPAddress") + " not routable CIDR, cannot geolocate hostname '" + entryvalue.GetElement("Hostname") + "' .");
                             break;
                     }
 
@@ -265,20 +265,20 @@ namespace ThreatIntelligence
                     {
                         try
                         {
-                            geolocate_ip(connectionstring, IPAddress.Parse(entryvalue.getElement("IPAddress")), entryvalue);
-                            arin_lookup(connectionstring, IPAddress.Parse(entryvalue.getElement("IPAddress")), entryvalue);
+                            geolocate_ip(connectionstring, IPAddress.Parse(entryvalue.GetElement("IPAddress")), entryvalue);
+                            arin_lookup(connectionstring, IPAddress.Parse(entryvalue.GetElement("IPAddress")), entryvalue);
                         }
                         catch (Exception ex)
                         {
                             ifIPisNotParsable = true;
-                            Console.Out.WriteLine("Warning: IP Address " + entryvalue.getElement("IPAddress") + " did not parse, entry dropped.");
+                            Console.Out.WriteLine("Warning: IP Address " + entryvalue.GetElement("IPAddress") + " did not parse, entry dropped.");
                         }
                     }
                 }
             }
 
-            string ipAddressString = entryvalue.getElement("IPAddress").Trim();
-            string hostnameString = entryvalue.getElement("Hostname").Trim();
+            string ipAddressString = entryvalue.GetElement("IPAddress").Trim();
+            string hostnameString = entryvalue.GetElement("Hostname").Trim();
 
             Boolean process = true;
             if (hostnameString == "" && ipAddressString == "")
@@ -302,11 +302,11 @@ namespace ThreatIntelligence
                         string hostname = reverseDNS(ipAddress);
                         if (hostname != null)
                         {
-                            entryvalue.setElement("ReverseDNS", hostname);
+                            entryvalue.SetElement("ReverseDNS", hostname);
 
                             if (hostnameString == "")
                             {
-                                entryvalue.setElement("Hostname", hostname.Trim());
+                                entryvalue.SetElement("Hostname", hostname.Trim());
                                 hostnameString = hostname.Trim();
                             }
                         }
@@ -326,17 +326,17 @@ namespace ThreatIntelligence
                         tld_country_lookup(connectionstring, entryvalue);
                         if (expandhostname(connectionstring, BlockListId, entryvalue))
                         {
-                            entryvalue.setElement("Resolvable", "1");
+                            entryvalue.SetElement("Resolvable", "1");
                             saveEntry = false; // We would have already completed all these tasks at this point including saving this entry
                         }
                         else
                         {
-                            entryvalue.setElement("Resolvable", "0");
+                            entryvalue.SetElement("Resolvable", "0");
                         }
                     }
                     else
                     {
-                        entryvalue.setElement("Resolvable", "1");
+                        entryvalue.SetElement("Resolvable", "1");
                     }
                 }
 
@@ -344,34 +344,34 @@ namespace ThreatIntelligence
                 {
                     string SQL = "insert into Blocked (Hostname, IPAddress, CreatedOn, LastObserved, ObservedCount, Latitude, Longitude, AccuracyRadius, Continent, Country, CountryName, Subdivision1, Subdivision2, City, TimeZone, Network, ReverseDNS, ASN, ASO, Resolvable, TLDCountry) OUTPUT Inserted.ID values (@Hostname, @IPAddress, @CreatedOn, @LastObserved, @ObservedCount, @Latitude, @Longitude, @AccuracyRadius, @Continent, @Country, @CountryName, @Subdivision1, @Subdivision2, @City, @TimeZone, @Network, @ReverseDNS, @ASN, @ASO, @Resolvable, @TLDCountry)";
                     Tree values = new Tree();
-                    values.addElement("Hostname", entryvalue.getElement("Hostname"));
-                    if (entryvalue.getElement("IPAddress") != "0.0.0.0")
+                    values.AddElement("Hostname", entryvalue.GetElement("Hostname"));
+                    if (entryvalue.GetElement("IPAddress") != "0.0.0.0")
                     {
-                        values.addElement("IPAddress", entryvalue.getElement("IPAddress"));
+                        values.AddElement("IPAddress", entryvalue.GetElement("IPAddress"));
                     }
                     else
                     {
-                        values.addElement("IPAddress", "");
+                        values.AddElement("IPAddress", "");
                     }
-                    values.addElement("CreatedOn", DateTime.UtcNow.ToString("yyyy-MM-dd"));
-                    values.addElement("LastObserved", DateTime.UtcNow.ToString("yyyy-MM-dd"));
-                    values.addElement("ObservedCount", "1");
-                    values.addElement("Latitude", entryvalue.getElement("Latitude") == null ? "" : entryvalue.getElement("Latitude"));
-                    values.addElement("Longitude", entryvalue.getElement("Longitude") == null ? "" : entryvalue.getElement("Longitude"));
-                    values.addElement("AccuracyRadius", entryvalue.getElement("AccuracyRadius") == null ? "" : entryvalue.getElement("AccuracyRadius"));
-                    values.addElement("Continent", entryvalue.getElement("Continent") == null ? "" : entryvalue.getElement("Continent"));
-                    values.addElement("Country", entryvalue.getElement("Country") == null ? "" : entryvalue.getElement("Country"));
-                    values.addElement("CountryName", entryvalue.getElement("CountryName") == null ? "" : entryvalue.getElement("CountryName"));
-                    values.addElement("Subdivision1", entryvalue.getElement("Subdivision1") == null ? "" : entryvalue.getElement("Subdivision1"));
-                    values.addElement("Subdivision2", entryvalue.getElement("Subdivision2") == null ? "" : entryvalue.getElement("Subdivision2"));
-                    values.addElement("City", entryvalue.getElement("City") == null ? "" : entryvalue.getElement("City"));
-                    values.addElement("TimeZone", entryvalue.getElement("TimeZone") == null ? "" : entryvalue.getElement("TimeZone"));
-                    values.addElement("Network", entryvalue.getElement("Network") == null ? "" : entryvalue.getElement("Network"));
-                    values.addElement("ReverseDNS", entryvalue.getElement("ReverseDNS") == null ? "" : entryvalue.getElement("ReverseDNS"));
-                    values.addElement("ASN", entryvalue.getElement("ASN") == null ? "" : entryvalue.getElement("ASN"));
-                    values.addElement("ASO", entryvalue.getElement("ASO") == null ? "" : entryvalue.getElement("ASO"));
-                    values.addElement("Resolvable", entryvalue.getElement("Resolvable") == null ? "1" : entryvalue.getElement("Resolvable"));
-                    values.addElement("TLDCountry", entryvalue.getElement("TLDCountry") == null ? "Ambiguous" : entryvalue.getElement("TLDCountry"));
+                    values.AddElement("CreatedOn", DateTime.UtcNow.ToString("yyyy-MM-dd"));
+                    values.AddElement("LastObserved", DateTime.UtcNow.ToString("yyyy-MM-dd"));
+                    values.AddElement("ObservedCount", "1");
+                    values.AddElement("Latitude", entryvalue.GetElement("Latitude") == null ? "" : entryvalue.GetElement("Latitude"));
+                    values.AddElement("Longitude", entryvalue.GetElement("Longitude") == null ? "" : entryvalue.GetElement("Longitude"));
+                    values.AddElement("AccuracyRadius", entryvalue.GetElement("AccuracyRadius") == null ? "" : entryvalue.GetElement("AccuracyRadius"));
+                    values.AddElement("Continent", entryvalue.GetElement("Continent") == null ? "" : entryvalue.GetElement("Continent"));
+                    values.AddElement("Country", entryvalue.GetElement("Country") == null ? "" : entryvalue.GetElement("Country"));
+                    values.AddElement("CountryName", entryvalue.GetElement("CountryName") == null ? "" : entryvalue.GetElement("CountryName"));
+                    values.AddElement("Subdivision1", entryvalue.GetElement("Subdivision1") == null ? "" : entryvalue.GetElement("Subdivision1"));
+                    values.AddElement("Subdivision2", entryvalue.GetElement("Subdivision2") == null ? "" : entryvalue.GetElement("Subdivision2"));
+                    values.AddElement("City", entryvalue.GetElement("City") == null ? "" : entryvalue.GetElement("City"));
+                    values.AddElement("TimeZone", entryvalue.GetElement("TimeZone") == null ? "" : entryvalue.GetElement("TimeZone"));
+                    values.AddElement("Network", entryvalue.GetElement("Network") == null ? "" : entryvalue.GetElement("Network"));
+                    values.AddElement("ReverseDNS", entryvalue.GetElement("ReverseDNS") == null ? "" : entryvalue.GetElement("ReverseDNS"));
+                    values.AddElement("ASN", entryvalue.GetElement("ASN") == null ? "" : entryvalue.GetElement("ASN"));
+                    values.AddElement("ASO", entryvalue.GetElement("ASO") == null ? "" : entryvalue.GetElement("ASO"));
+                    values.AddElement("Resolvable", entryvalue.GetElement("Resolvable") == null ? "1" : entryvalue.GetElement("Resolvable"));
+                    values.AddElement("TLDCountry", entryvalue.GetElement("TLDCountry") == null ? "Ambiguous" : entryvalue.GetElement("TLDCountry"));
 
                     DataTable dt = db.ExecuteDynamic(SQL, values);
                     long BlockedId = -1;
@@ -384,7 +384,7 @@ namespace ThreatIntelligence
                         }
                     }
                     CheckForExistingEntryAssociation(connectionstring, BlockedId, BlockListId);
-                    values.dispose();
+                    values.Dispose();
                 }
 
                 db.Close();
@@ -397,10 +397,10 @@ namespace ThreatIntelligence
             IntDatabase db = new ADOConnector(connectionstring, "Archlake");
             string SQL = "select * from Blocked where hostname = @Hostname and ipaddress = @IPAddress";
             Tree values = new Tree();
-            values.addElement("Hostname", entryvalue.getElement("Hostname"));
-            values.addElement("IPAddress", entryvalue.getElement("IPAddress"));
+            values.AddElement("Hostname", entryvalue.GetElement("Hostname"));
+            values.AddElement("IPAddress", entryvalue.GetElement("IPAddress"));
             DataTable dt = db.ExecuteDynamic(SQL, values);
-            values.dispose();
+            values.Dispose();
 
             if (dt != null)
             {
@@ -420,7 +420,7 @@ namespace ThreatIntelligence
 
                         }
                         occurances++;
-                        entryvalue.setElement("ObservedCount", occurances.ToString());
+                        entryvalue.SetElement("ObservedCount", occurances.ToString());
                     }
                 }
             }
@@ -461,11 +461,11 @@ namespace ThreatIntelligence
 
                                     if (IPAddress.TryParse(updated, out tmpIPAddress))
                                     {
-                                        newEntry.addElement("IPAddress", updated);
-                                        newEntry.addElement("Hostname", "");
+                                        newEntry.AddElement("IPAddress", updated);
+                                        newEntry.AddElement("Hostname", "");
                                     }
 
-                                    result.addNode(newEntry, "row");
+                                    result.AddNode(newEntry, "row");
                                     index++;
                                 }
                                 else
@@ -475,16 +475,16 @@ namespace ThreatIntelligence
 
                                     if (IPAddress.TryParse(updated, out tmpIPAddress))
                                     {
-                                        newEntry.addElement("IPAddress", updated);
-                                        newEntry.addElement("Hostname", "");
+                                        newEntry.AddElement("IPAddress", updated);
+                                        newEntry.AddElement("Hostname", "");
                                     }
                                     else
                                     {
-                                        newEntry.addElement("Hostname", updated);
-                                        newEntry.addElement("IPAddress", "");
+                                        newEntry.AddElement("Hostname", updated);
+                                        newEntry.AddElement("IPAddress", "");
                                     }
 
-                                    result.addNode(newEntry, "row");
+                                    result.AddNode(newEntry, "row");
                                     index++;
                                 }
                             }
@@ -517,9 +517,9 @@ namespace ThreatIntelligence
                     if (split.Length == 2)
                     {
                         Tree newEntry = new Tree();
-                        newEntry.addElement("IPAddress", split[0]);
-                        newEntry.addElement("Hostname", split[1]);
-                        result.addNode(newEntry, "row");
+                        newEntry.AddElement("IPAddress", split[0]);
+                        newEntry.AddElement("Hostname", split[1]);
+                        result.AddNode(newEntry, "row");
                         index++;
                     }
                 }
@@ -533,12 +533,12 @@ namespace ThreatIntelligence
 
             string SQL = "update Blocklists set PreviousHash=@PreviousHash, PreviousLength=@PreviousLength, PreviousCount=@PreviousCount where ID=@ID";
             Tree values = new Tree();
-            values.addElement("PreviousHash", PreviousHash == null ? "" : PreviousHash);
-            values.addElement("PreviousLength", PreviousLength == null ? "" : PreviousLength.Value.ToString());
-            values.addElement("PreviousCount", PreviousCount == null ? "" : PreviousCount.Value.ToString());
-            values.addElement("ID", ID.ToString());
+            values.AddElement("PreviousHash", PreviousHash == null ? "" : PreviousHash);
+            values.AddElement("PreviousLength", PreviousLength == null ? "" : PreviousLength.Value.ToString());
+            values.AddElement("PreviousCount", PreviousCount == null ? "" : PreviousCount.Value.ToString());
+            values.AddElement("ID", ID.ToString());
             db.ExecuteDynamic(SQL, values);
-            values.dispose();
+            values.Dispose();
             db.Close();
         }
 
@@ -548,10 +548,10 @@ namespace ThreatIntelligence
 
             string SQL = "insert into BlockedAssociations (BlockedId, BlockedListId) values (@BlockedId, @BlockedListId)";
             Tree values = new Tree();
-            values.addElement("BlockedId", blockedid.ToString());
-            values.addElement("BlockedListId", blockedlistid.ToString());
+            values.AddElement("BlockedId", blockedid.ToString());
+            values.AddElement("BlockedListId", blockedlistid.ToString());
             db.ExecuteDynamic(SQL, values);
-            values.dispose();
+            values.Dispose();
             db.Close();
         }
 
@@ -561,10 +561,10 @@ namespace ThreatIntelligence
 
             string SQL = "select * from BlockedAssociations where BlockedId = @BlockedId and BlockedListId = @BlockedListId";
             Tree values = new Tree();
-            values.addElement("BlockedId", blockedid.ToString());
-            values.addElement("BlockedListId", blockedlistid.ToString());
+            values.AddElement("BlockedId", blockedid.ToString());
+            values.AddElement("BlockedListId", blockedlistid.ToString());
             DataTable dt = db.ExecuteDynamic(SQL, values);
-            values.dispose();
+            values.Dispose();
 
             if (dt != null)
             {
@@ -584,7 +584,7 @@ namespace ThreatIntelligence
         {
             Boolean resolvable = false;
 
-            string hostname = entryvalue.getElement("Hostname");
+            string hostname = entryvalue.GetElement("Hostname");
             IPAddress[] allIPsResolved = resolveHostname(hostname);
             if (allIPsResolved != null)
             {
@@ -592,9 +592,9 @@ namespace ThreatIntelligence
                 {
                     resolvable = true;
                     Tree entry = entryvalue.Duplicate();
-                    entry.setElement("IPAddress", currentIP.ToString());
+                    entry.SetElement("IPAddress", currentIP.ToString());
                     ProcessBlockedEntry(connectionstring, entry, blockedlistid, 2).Wait();
-                    entry.dispose();
+                    entry.Dispose();
                 }
             }
             return resolvable;
@@ -739,9 +739,9 @@ namespace ThreatIntelligence
                            where [GeoLite2-City-Blocks-IPv4].network = @ipquery";
 
                         Tree values = new Tree();
-                        values.addElement("@ipquery", networkrange);
+                        values.AddElement("@ipquery", networkrange);
                         DataTable dt = db.ExecuteDynamic(SQL, values);
-                        values.dispose();
+                        values.Dispose();
 
                         if (dt.Rows.Count > 0)
                         {
@@ -751,16 +751,16 @@ namespace ThreatIntelligence
                                 Console.Out.WriteLine("Warning:  more than one network matches, picking first on list.");
                             }
 
-                            entry.setElement("Latitude", dt.Rows[0]["latitude"].ToString());
-                            entry.setElement("Longitude", dt.Rows[0]["longitude"].ToString());
-                            entry.setElement("AccuracyRadius", dt.Rows[0]["accuracy_radius"].ToString());
-                            entry.setElement("Continent", dt.Rows[0]["continent_name"].ToString());
-                            entry.setElement("Country", dt.Rows[0]["country_iso_code"].ToString());
-                            entry.setElement("CountryName", dt.Rows[0]["country_name"].ToString());
-                            entry.setElement("Subdivision1", dt.Rows[0]["subdivision_1_name"].ToString());
-                            entry.setElement("Subdivision2", dt.Rows[0]["subdivision_2_name"].ToString());
-                            entry.setElement("City", dt.Rows[0]["city_name"].ToString());
-                            entry.setElement("TimeZone", dt.Rows[0]["time_zone"].ToString());
+                            entry.SetElement("Latitude", dt.Rows[0]["latitude"].ToString());
+                            entry.SetElement("Longitude", dt.Rows[0]["longitude"].ToString());
+                            entry.SetElement("AccuracyRadius", dt.Rows[0]["accuracy_radius"].ToString());
+                            entry.SetElement("Continent", dt.Rows[0]["continent_name"].ToString());
+                            entry.SetElement("Country", dt.Rows[0]["country_iso_code"].ToString());
+                            entry.SetElement("CountryName", dt.Rows[0]["country_name"].ToString());
+                            entry.SetElement("Subdivision1", dt.Rows[0]["subdivision_1_name"].ToString());
+                            entry.SetElement("Subdivision2", dt.Rows[0]["subdivision_2_name"].ToString());
+                            entry.SetElement("City", dt.Rows[0]["city_name"].ToString());
+                            entry.SetElement("TimeZone", dt.Rows[0]["time_zone"].ToString());
                         }
                         else
                         {
@@ -780,29 +780,17 @@ namespace ThreatIntelligence
         {
             Boolean isvalid = false;
 
-            string ipaddress = entry.getElement("IPAddress");
-            string hostname = entry.getElement("Hostname");
+            string ipaddress = entry.GetElement("IPAddress");
+            string hostname = entry.GetElement("Hostname");
 
-            if (ipaddress != null)
+            if (ipaddress != null && ipaddress != "" && ipaddress != "0.0.0.0" && ipaddress != "0.0.0.0/0")
             {
-                if (ipaddress != "")
-                {
-                    if (ipaddress != "0.0.0.0")
-                    {
-                        if (ipaddress != "0.0.0.0/0")
-                        {
-                            isvalid = true;
-                        }
-                    }
-                }
+                isvalid = true;
             }
 
-            if (hostname != null)
+            if (hostname != null && hostname != "")
             {
-                if (hostname != "")
-                {
-                    isvalid = true;
-                }
+                isvalid = true;
             }
 
             return isvalid;
@@ -908,9 +896,9 @@ namespace ThreatIntelligence
                            where network = @ipquery";
 
                         Tree values = new Tree();
-                        values.addElement("@ipquery", networkrange);
+                        values.AddElement("@ipquery", networkrange);
                         DataTable dt = db.ExecuteDynamic(SQL, values);
-                        values.dispose();
+                        values.Dispose();
 
                         if (dt.Rows.Count > 0)
                         {
@@ -920,9 +908,9 @@ namespace ThreatIntelligence
                                 Console.Out.WriteLine("Warning:  more than one network matches, picking first on list.");
                             }
 
-                            entry.setElement("Network", networkrange);
-                            entry.setElement("ASN", dt.Rows[0]["autonomous_system_number"].ToString());
-                            entry.setElement("ASO", dt.Rows[0]["autonomous_system_organization"].ToString());
+                            entry.SetElement("Network", networkrange);
+                            entry.SetElement("ASN", dt.Rows[0]["autonomous_system_number"].ToString());
+                            entry.SetElement("ASO", dt.Rows[0]["autonomous_system_organization"].ToString());
                         }
                         else
                         {
@@ -940,11 +928,11 @@ namespace ThreatIntelligence
 
         private static void tld_country_lookup(string connectionstring, Tree entry)
         {
-            if (entry.getElement("Hostname")!=null)
+            if (entry.GetElement("Hostname")!=null)
             {
-                if (entry.getElement("Hostname").Trim()!="")
+                if (entry.GetElement("Hostname").Trim()!="")
                 {
-                    string[] segments = entry.getElement("Hostname").Trim().Split('.');
+                    string[] segments = entry.GetElement("Hostname").Trim().Split('.');
                     if (segments.Length>1)
                     {
                         int tldindex = segments.Length - 1;
@@ -954,13 +942,13 @@ namespace ThreatIntelligence
                         string SQL = @"SELECT [country] FROM [World].[dbo].[country-codes-tlds] where tld = @tld";
 
                         Tree values = new Tree();
-                        values.addElement("@tld", "." + tld);
+                        values.AddElement("@tld", "." + tld);
                         DataTable dt = db.ExecuteDynamic(SQL, values);
-                        values.dispose();
+                        values.Dispose();
 
                         if (dt.Rows.Count > 0)
                         {
-                            entry.setElement("TLDCountry", dt.Rows[0]["country"].ToString());
+                            entry.SetElement("TLDCountry", dt.Rows[0]["country"].ToString());
                         }
                         db.Close();
                     }
