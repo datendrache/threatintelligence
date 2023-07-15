@@ -23,7 +23,7 @@ namespace ThreatIntelligence
                 {
                     if (lastRun == DateTime.MinValue || lastRun.Day != DateTime.UtcNow.Day)
                     {
-                        string connectionstring = "Server=localhost;Database=Archlake;User Id=sa;Password=1jp4pwthnbhy!;";
+                        string connectionstring = "<connection string, remove and replace with a configuration based approach>";
                         ThreatList.processBlocklists(connectionstring);
                         lastRun = DateTime.Now;
                     }
